@@ -42,6 +42,7 @@ func SetApiRouter(router *gin.Engine) {
 
 		apiRouter.POST("/stripe/webhook", controller.StripeWebhook)
 		apiRouter.POST("/creem/webhook", controller.CreemWebhook)
+		apiRouter.POST("/openwebui/webhook", controller.OpenWebUIWebhook)
 
 		// Universal secure verification routes
 		apiRouter.POST("/verify", middleware.UserAuth(), middleware.CriticalRateLimit(), controller.UniversalVerify)
