@@ -98,6 +98,7 @@ const SystemSetting = () => {
     LinuxDOClientId: '',
     LinuxDOClientSecret: '',
     LinuxDOMinimumTrustLevel: '',
+    OpenWebUIUserIntegrationEnabled: '',
     ServerAddress: '',
     // SSRF防护配置
     'fetch_setting.enable_ssrf_protection': true,
@@ -118,6 +119,7 @@ const SystemSetting = () => {
   const [showPasswordLoginConfirmModal, setShowPasswordLoginConfirmModal] =
     useState(false);
   const [linuxDOOAuthEnabled, setLinuxDOOAuthEnabled] = useState(false);
+  const [openWebUIUserIntegrationEnabled, setOpenWebUIUserIntegrationEnabled] = useState(false);
   const [emailToAdd, setEmailToAdd] = useState('');
   const [domainFilterMode, setDomainFilterMode] = useState(true);
   const [ipFilterMode, setIpFilterMode] = useState(true);
@@ -187,6 +189,7 @@ const SystemSetting = () => {
           case 'passkey.enabled':
           case 'passkey.allow_insecure_origin':
           case 'WorkerAllowHttpImageRequestEnabled':
+          case 'OpenWebUIUserIntegrationEnabled':
             item.value = toBoolean(item.value);
             break;
           case 'passkey.origins':
@@ -682,6 +685,9 @@ const SystemSetting = () => {
     if (optionKey === 'LinuxDOOAuthEnabled') {
       setLinuxDOOAuthEnabled(value);
     }
+    if (optionKey === 'OpenWebUIUserIntegrationEnabled') {
+      setOpenWebUIUserIntegrationEnabled(value);
+    }
   };
 
   const handlePasswordLoginConfirm = async () => {
@@ -1056,6 +1062,15 @@ const SystemSetting = () => {
                         }
                       >
                         {t('允许通过 Linux DO 账户登录 & 注册')}
+                      </Form.Checkbox>
+                      <Form.Checkbox
+                        field='OpenWebUIUserIntegrationEnabled'
+                        noLabel
+                        onChange={(e) =>
+                          handleCheckboxChange('OpenWebUIUserIntegrationEnabled', e)
+                        }
+                      >
+                        {t('启用 OpenWebUI 用户集成')}
                       </Form.Checkbox>
                       <Form.Checkbox
                         field='WeChatAuthEnabled'
