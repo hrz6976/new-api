@@ -431,30 +431,19 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 		}
 		err := user.FillUserByEmail()
 		// 如果已经注册，改写用户信息
-		if err != nil {
+		if err == nil {
 			info.IsPlayground = true  // playground 模式不对token计费
 			info.UserId = user.Id
 			info.UserEmail = user.Email
 			info.UserQuota = user.Quota
 			info.UserGroup = user.Group
+			common.LogInfo(c, fmt.Sprintf("OpenWebUI 用户重定向 email: %s", userEmail))
+		} else {
+			common.LogInfo(c, fmt.Sprintf("OpenWebUI 用户未注册 email: %s %v", userEmail, err))
 		}
-		// 打印到日志
-		common.LogInfo(c, fmt.Sprintf("OpenWebUI 用户重定向 email: %s", userEmail))
-	}	
+	}
 
-	if info.BaseUrl == "" {
-		info.BaseUrl = constant.ChannelBaseURLs[channelType]
-	}
-	if info.ChannelType == constant.ChannelTypeAzure {
-		info.ApiVersion = GetAPIVersion(c)
-	}
-	if info.ChannelType == constant.ChannelTypeVertexAi {
-		info.ApiVersion = c.GetString("region")
-	}
-	if streamSupportedChannels[info.ChannelType] {
-		info.SupportStreamOptions = true
-	}
->>>>>>> 1cae7c25 (feat: open webui 用户重定向)
+
 
 	userSetting, ok := common.GetContextKeyType[dto.UserSetting](c, constant.ContextKeyUserSetting)
 	if ok {
