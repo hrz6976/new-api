@@ -7,7 +7,6 @@ import (
 
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
-	commonRelay "github.com/QuantumNous/new-api/relay/common"
 )
 
 type TaskStatus string
@@ -126,28 +125,26 @@ type SyncTaskQueryParams struct {
 	UserIDs        []int
 }
 
-func InitTask(platform constant.TaskPlatform, relayInfo *commonRelay.RelayInfo) *Task {
+func InitTask(platform constant.TaskPlatform, userId int, channelId int, usingGroup string, channelType int, apiKey string, upstreamModelName string, originModelName string) *Task {
 	properties := Properties{}
 	privateData := TaskPrivateData{}
-	if relayInfo != nil && relayInfo.ChannelMeta != nil {
-		if relayInfo.ChannelMeta.ChannelType == constant.ChannelTypeGemini {
-			privateData.Key = relayInfo.ChannelMeta.ApiKey
-		}
-		if relayInfo.UpstreamModelName != "" {
-			properties.UpstreamModelName = relayInfo.UpstreamModelName
-		}
-		if relayInfo.OriginModelName != "" {
-			properties.OriginModelName = relayInfo.OriginModelName
-		}
+	if channelType == constant.ChannelTypeGemini {
+		privateData.Key = apiKey
+	}
+	if upstreamModelName != "" {
+		properties.UpstreamModelName = upstreamModelName
+	}
+	if originModelName != "" {
+		properties.OriginModelName = originModelName
 	}
 
 	t := &Task{
-		UserId:      relayInfo.UserId,
-		Group:       relayInfo.UsingGroup,
+		UserId:      userId,
+		Group:       usingGroup,
 		SubmitTime:  time.Now().Unix(),
 		Status:      TaskStatusNotStart,
 		Progress:    "0%",
-		ChannelId:   relayInfo.ChannelId,
+		ChannelId:   channelId,
 		Platform:    platform,
 		Properties:  properties,
 		PrivateData: privateData,

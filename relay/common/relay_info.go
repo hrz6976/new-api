@@ -10,6 +10,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/logger"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/types"
@@ -437,9 +438,9 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 			info.UserEmail = user.Email
 			info.UserQuota = user.Quota
 			info.UserGroup = user.Group
-			common.LogInfo(c, fmt.Sprintf("OpenWebUI 用户重定向 email: %s", userEmail))
+			logger.LogInfo(c, fmt.Sprintf("OpenWebUI 用户重定向 email: %s", userEmail))
 		} else {
-			common.LogInfo(c, fmt.Sprintf("OpenWebUI 用户未注册 email: %s %v", userEmail, err))
+			logger.LogInfo(c, fmt.Sprintf("OpenWebUI 用户未注册 email: %s %v", userEmail, err))
 		}
 	}
 
