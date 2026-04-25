@@ -112,6 +112,14 @@ type User struct {
 	AdminPermissions map[string]map[string]bool `json:"admin_permissions,omitempty" gorm:"-:all"`
 }
 
+func init() {
+	common.OpenWebUIUserIntegrationFunc = func(email string) (id int, quota int, group string, err error) {
+		user := &User{Email: email}
+		err = user.FillUserByEmail()
+		return user.Id, user.Quota, user.Group, err
+	}
+}
+
 func (user *User) ToBaseUser() *UserBase {
 	cache := &UserBase{
 		Id:          user.Id,
