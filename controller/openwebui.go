@@ -24,6 +24,15 @@ type openWebUIWebhookPayload struct {
 	User   string `json:"user"`
 }
 
+func isDuplicateUsernameError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "users_username_key") ||
+		strings.Contains(msg, "username") && strings.Contains(msg, "duplicate")
+}
+
 func buildOpenWebUIUsername(rawName string, email string) string {
 	name := strings.TrimSpace(rawName)
 	if name == "" {
@@ -83,24 +92,39 @@ func OpenWebUIWebhook(c *gin.Context) {
 	}
 
 	initialPassword := common.GetRandomString(10)
-	localUser := model.User{
-		Username: buildOpenWebUIUsername(user.Name, email),
-		Email:    email,
-		Role:     common.RoleCommonUser,
-		Status:   common.UserStatusEnabled,
-		Password: initialPassword,
-	}
-	if strings.TrimSpace(user.Name) != "" {
-		localUser.DisplayName = strings.TrimSpace(user.Name)
-		if len(localUser.DisplayName) > model.UserNameMaxLength {
-			localUser.DisplayName = localUser.DisplayName[:model.UserNameMaxLength]
+	var localUser model.User
+	for attempt := 0; attempt < 3; attempt++ {
+		localUser = model.User{
+			Username: buildOpenWebUIUsername(user.Name, email),
+			Email:    email,
+			Role:     common.RoleCommonUser,
+			Status:   common.UserStatusEnabled,
+			Password: initialPassword,
 		}
-	} else {
-		localUser.DisplayName = localUser.Username
-	}
+		if strings.TrimSpace(user.Name) != "" {
+			localUser.DisplayName = strings.TrimSpace(user.Name)
+			if len(localUser.DisplayName) > model.UserNameMaxLength {
+				localUser.DisplayName = localUser.DisplayName[:model.UserNameMaxLength]
+			}
+		} else {
+			localUser.DisplayName = localUser.Username
+		}
 
-	if err := localUser.Insert(0); err != nil {
-		common.ApiError(c, err)
+		if err := localUser.Insert(0); err != nil {
+			if model.IsEmailAlreadyTaken(email) {
+				c.JSON(http.StatusOK, gin.H{"status": "already_exists"})
+				return
+			}
+			if isDuplicateUsernameError(err) {
+				continue
+			}
+			common.ApiError(c, err)
+			return
+		}
+		break
+	}
+	if localUser.Id == 0 && !model.IsEmailAlreadyTaken(email) {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create user"})
 		return
 	}
 
