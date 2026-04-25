@@ -55,6 +55,14 @@ type User struct {
 	LastLoginAt      int64          `json:"last_login_at" gorm:"default:0;column:last_login_at"`
 }
 
+func init() {
+	common.OpenWebUIUserIntegrationFunc = func(email string) (id int, quota int, group string, err error) {
+		user := &User{Email: email}
+		err = user.FillUserByEmail()
+		return user.Id, user.Quota, user.Group, err
+	}
+}
+
 func (user *User) ToBaseUser() *UserBase {
 	cache := &UserBase{
 		Id:       user.Id,
