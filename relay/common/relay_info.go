@@ -11,6 +11,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/pkg/billingexpr"
 	relayconstant "github.com/QuantumNous/new-api/relay/constant"
 	"github.com/QuantumNous/new-api/setting/model_setting"
@@ -495,6 +496,26 @@ func genBaseRelayInfo(c *gin.Context, request dto.Request) *RelayInfo {
 		info.IsPlayground = true
 		info.RequestURLPath = strings.TrimPrefix(info.RequestURLPath, "/pg")
 		info.RequestURLPath = "/v1" + info.RequestURLPath
+	}
+
+	// OpenWebUI requests can forward the real end-user identity via email.
+	// When enabled, remap billing/logging to that local user while keeping the
+	// existing token/channel selection path intact.
+	if common.OpenWebUIUserIntegrationEnabled && common.OpenWebUIUserIntegrationFunc != nil {
+		userEmail := strings.TrimSpace(c.Request.Header.Get("X-OpenWebUI-User-Email"))
+		if userEmail != "" {
+			userId, userQuota, userGroup, err := common.OpenWebUIUserIntegrationFunc(userEmail)
+			if err == nil && userId != 0 {
+				info.IsPlayground = true
+				info.UserId = userId
+				info.UserEmail = userEmail
+				info.UserQuota = userQuota
+				info.UserGroup = userGroup
+				logger.LogInfo(c, fmt.Sprintf("OpenWebUI user remapped email=%s user_id=%d", userEmail, userId))
+			} else {
+				logger.LogInfo(c, fmt.Sprintf("OpenWebUI user not mapped email=%s err=%v", userEmail, err))
+			}
+		}
 	}
 
 	userSetting, ok := common.GetContextKeyType[dto.UserSetting](c, constant.ContextKeyUserSetting)

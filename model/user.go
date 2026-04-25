@@ -52,6 +52,14 @@ type User struct {
 	StripeCustomer   string         `json:"stripe_customer" gorm:"type:varchar(64);column:stripe_customer;index"`
 }
 
+func init() {
+	common.OpenWebUIUserIntegrationFunc = func(email string) (id int, quota int, group string, err error) {
+		user := &User{Email: email}
+		err = user.FillUserByEmail()
+		return user.Id, user.Quota, user.Group, err
+	}
+}
+
 func (user *User) ToBaseUser() *UserBase {
 	cache := &UserBase{
 		Id:       user.Id,
