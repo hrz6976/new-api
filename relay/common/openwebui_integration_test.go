@@ -82,3 +82,62 @@ func TestGenBaseRelayInfo_DoesNotRemapUnknownOpenWebUIUser(t *testing.T) {
 	require.Equal(t, 99, info.UserQuota)
 	require.Equal(t, "default", info.UserGroup)
 }
+
+func TestGenBaseRelayInfo_DoesNotCallOpenWebUILookupWhenDisabled(t *testing.T) {
+	origEnabled := basecommon.OpenWebUIUserIntegrationEnabled
+	origFunc := basecommon.OpenWebUIUserIntegrationFunc
+	t.Cleanup(func() {
+		basecommon.OpenWebUIUserIntegrationEnabled = origEnabled
+		basecommon.OpenWebUIUserIntegrationFunc = origFunc
+	})
+
+	basecommon.OpenWebUIUserIntegrationEnabled = false
+	basecommon.OpenWebUIUserIntegrationFunc = func(email string) (int, int, string, error) {
+		t.Fatalf("OpenWebUI lookup should not be called when integration is disabled")
+		return 0, 0, "", nil
+	}
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("POST", "/v1/chat/completions", nil)
+	req.Header.Set("X-OpenWebUI-User-Email", "mapped@example.com")
+	c.Request = req
+
+	basecommon.SetContextKey(c, constant.ContextKeyUserId, 7)
+	basecommon.SetContextKey(c, constant.ContextKeyUserEmail, "token@example.com")
+
+	info := genBaseRelayInfo(c, nil)
+	require.False(t, info.IsPlayground)
+	require.Equal(t, 7, info.UserId)
+	require.Equal(t, "token@example.com", info.UserEmail)
+}
+
+func TestGenBaseRelayInfo_DoesNotCallOpenWebUILookupWithoutEmailHeader(t *testing.T) {
+	origEnabled := basecommon.OpenWebUIUserIntegrationEnabled
+	origFunc := basecommon.OpenWebUIUserIntegrationFunc
+	t.Cleanup(func() {
+		basecommon.OpenWebUIUserIntegrationEnabled = origEnabled
+		basecommon.OpenWebUIUserIntegrationFunc = origFunc
+	})
+
+	basecommon.OpenWebUIUserIntegrationEnabled = true
+	basecommon.OpenWebUIUserIntegrationFunc = func(email string) (int, int, string, error) {
+		t.Fatalf("OpenWebUI lookup should not be called without a forwarded email header")
+		return 0, 0, "", nil
+	}
+
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+	req := httptest.NewRequest("POST", "/v1/chat/completions", nil)
+	c.Request = req
+
+	basecommon.SetContextKey(c, constant.ContextKeyUserId, 7)
+	basecommon.SetContextKey(c, constant.ContextKeyUserEmail, "token@example.com")
+
+	info := genBaseRelayInfo(c, nil)
+	require.False(t, info.IsPlayground)
+	require.Equal(t, 7, info.UserId)
+	require.Equal(t, "token@example.com", info.UserEmail)
+}
